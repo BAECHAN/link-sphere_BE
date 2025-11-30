@@ -1,107 +1,78 @@
-CREATE TABLE "User" (
-  "id" varchar PRIMARY KEY NOT NULL,
-  "email" varchar UNIQUE,
-  "password" varchar,
-  "nickname" varchar UNIQUE,
-  "profile_image_url" varchar,
-  "createdAt" timestamp NOT NULL
+-- LinkSphere DDL (PostgreSQL)
+-- 테이블 이름을 소문자 복수형으로 변경 (Hibernate 호환성)
+
+-- 1. Users Table
+CREATE TABLE IF NOT EXISTS users (
+    id VARCHAR(255) PRIMARY KEY,
+    email VARCHAR(255) UNIQUE,
+    password VARCHAR(255),
+    nickname VARCHAR(255) UNIQUE,
+    profile_image_url VARCHAR(255),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE "Account" (
-  "id" varchar PRIMARY KEY NOT NULL,
-  "userId" varchar NOT NULL,
-  "provider" varchar NOT NULL,
-  "providerAccountId" varchar NOT NULL,
-  "access_token" varchar,
-  "refresh_token" varchar,
-  "expires_at" integer,
-  "user" "User"
+-- 2. Posts Table
+CREATE TABLE IF NOT EXISTS posts (
+    id VARCHAR(255) PRIMARY KEY,
+    user_id VARCHAR(255) NOT NULL,
+    url VARCHAR(255) NOT NULL,
+    title VARCHAR(255),
+    description TEXT,
+    og_image VARCHAR(255),
+    ai_summary TEXT,
+    content TEXT,
+    view_count INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_posts_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE TABLE "Session" (
-  "id" varchar PRIMARY KEY NOT NULL,
-  "sessionToken" varchar UNIQUE NOT NULL,
-  "userId" varchar NOT NULL,
-  "expires" timestamp NOT NULL,
-  "user" "User"
+-- 3. Comments Table
+CREATE TABLE IF NOT EXISTS comments (
+    id VARCHAR(255) PRIMARY KEY,
+    user_id VARCHAR(255) NOT NULL,
+    post_id VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_comments_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_comments_post FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
 );
 
-CREATE TABLE "Post" (
-  "id" varchar PRIMARY KEY NOT NULL,
-  "userId" varchar NOT NULL,
-  "url" varchar NOT NULL,
-  "title" varchar,
-  "description" text,
-  "ogImage" varchar,
-  "aiSummary" text,
-  "content" text,
-  "viewCount" integer DEFAULT 0,
-  "createdAt" timestamp NOT NULL,
-  "user" "User"
+-- 4. Tags Table
+CREATE TABLE IF NOT EXISTS tags (
+    id VARCHAR(255) PRIMARY KEY,
+    name VARCHAR(255) UNIQUE NOT NULL
 );
 
-CREATE TABLE "Comment" (
-  "id" varchar PRIMARY KEY NOT NULL,
-  "userId" varchar NOT NULL,
-  "postId" varchar NOT NULL,
-  "content" text NOT NULL,
-  "createdAt" timestamp NOT NULL,
-  "updatedAt" timestamp NOT NULL,
-  "user" "User",
-  "post" "Post"
+-- 5. PostTags Table (N:M)
+CREATE TABLE IF NOT EXISTS post_tags (
+    post_id VARCHAR(255) NOT NULL,
+    tag_id VARCHAR(255) NOT NULL,
+    PRIMARY KEY (post_id, tag_id),
+    CONSTRAINT fk_post_tags_post FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+    CONSTRAINT fk_post_tags_tag FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
 );
 
-CREATE TABLE "Bookmark" (
-  "userId" varchar NOT NULL,
-  "postId" varchar NOT NULL,
-  "createdAt" timestamp NOT NULL,
-  "user" "User",
-  "post" "Post",
-  PRIMARY KEY ("postId", "userId")
+-- 6. Bookmarks Table
+CREATE TABLE IF NOT EXISTS bookmarks (
+    user_id VARCHAR(255) NOT NULL,
+    post_id VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, post_id),
+    CONSTRAINT fk_bookmarks_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_bookmarks_post FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
 );
 
-CREATE TABLE "Tag" (
-  "id" varchar PRIMARY KEY NOT NULL,
-  "name" varchar UNIQUE NOT NULL
+-- 7. PostLikes Table
+CREATE TABLE IF NOT EXISTS post_likes (
+    user_id VARCHAR(255) NOT NULL,
+    post_id VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, post_id),
+    CONSTRAINT fk_post_likes_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_post_likes_post FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
 );
 
-CREATE TABLE "PostTag" (
-  "postId" varchar NOT NULL,
-  "tagId" varchar NOT NULL,
-  "post" "Post",
-  "tag" "Tag",
-  PRIMARY KEY ("postId", "tagId")
-);
-
-CREATE TABLE "PostLike" (
-  "userId" varchar NOT NULL,
-  "postId" varchar NOT NULL,
-  "createdAt" timestamp NOT NULL,
-  "user" "User",
-  "post" "Post",
-  PRIMARY KEY ("postId", "userId")
-);
-
-CREATE UNIQUE INDEX ON "Account" ("provider", "providerAccountId");
-
-ALTER TABLE "Account" ADD FOREIGN KEY ("userId") REFERENCES "User" ("id");
-
-ALTER TABLE "Session" ADD FOREIGN KEY ("userId") REFERENCES "User" ("id");
-
-ALTER TABLE "Post" ADD FOREIGN KEY ("userId") REFERENCES "User" ("id");
-
-ALTER TABLE "Comment" ADD FOREIGN KEY ("userId") REFERENCES "User" ("id");
-
-ALTER TABLE "Comment" ADD FOREIGN KEY ("postId") REFERENCES "Post" ("id");
-
-ALTER TABLE "Bookmark" ADD FOREIGN KEY ("userId") REFERENCES "User" ("id");
-
-ALTER TABLE "Bookmark" ADD FOREIGN KEY ("postId") REFERENCES "Post" ("id");
-
-ALTER TABLE "PostLike" ADD FOREIGN KEY ("userId") REFERENCES "User" ("id");
-
-ALTER TABLE "PostLike" ADD FOREIGN KEY ("postId") REFERENCES "Post" ("id");
-
-ALTER TABLE "PostTag" ADD FOREIGN KEY ("postId") REFERENCES "Post" ("id");
-
-ALTER TABLE "PostTag" ADD FOREIGN KEY ("tagId") REFERENCES "Tag" ("id");
+-- Indexes
+CREATE INDEX idx_posts_user_id ON posts(user_id);
+CREATE INDEX idx_comments_post_id ON comments(post_id);
