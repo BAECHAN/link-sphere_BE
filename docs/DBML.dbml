@@ -1,0 +1,154 @@
+// ===================================
+// LinkSphere ERD (DBML) - 최종 요구사항 반영
+// ===================================
+
+Project LinkSphere {
+  database_type: 'PostgreSQL'
+}
+
+// -----------------------------------
+// 1. 사용자 및 인증
+// -----------------------------------
+
+Table "User" {
+  id varchar [pk, not null] // String @id @default(cuid()) 반영
+  email varchar [unique]
+  password varchar
+  nickname varchar [unique] // 닉네임 추가
+  profile_image_url varchar // 이미지 필드
+
+  // 인증 관련 필드는 Session과 Account 테이블에서 관리
+  createdAt timestamp [not null]
+}
+
+Table "Account" {
+  id varchar [pk, not null]
+  userId varchar [not null]
+  provider varchar [not null]
+  providerAccountId varchar [not null]
+
+  // OAuth 관련 정보
+  access_token varchar
+  refresh_token varchar
+  expires_at integer
+
+  user User
+
+  indexes {
+    (provider, providerAccountId) [unique]
+  }
+}
+
+Table "Session" {
+  id varchar [pk, not null]
+  sessionToken varchar [unique, not null]
+  userId varchar [not null]
+  expires timestamp [not null]
+
+  user User
+}
+
+// -----------------------------------
+// 2. 콘텐츠 (Link 필드 통합)
+// -----------------------------------
+
+Table "Post" {
+  id varchar [pk, not null]
+  userId varchar [not null]
+
+  // Link 필드 통합 (URL 및 메타데이터)
+  url varchar [not null]
+  title varchar
+  description text
+  ogImage varchar // og:image
+  aiSummary text // AI 요약 (프리즈마 아이디어 반영)
+
+  content text // 사용자의 코멘트 (기존 요구사항)
+  viewCount integer [default: 0]
+
+  createdAt timestamp [not null]
+
+  user User
+}
+
+// -----------------------------------
+// 3. SNS 관계 및 N:M 중간 테이블 (기존 구조 복원)
+// -----------------------------------
+
+Table "Comment" {
+  id varchar [pk, not null]
+  userId varchar [not null]
+  postId varchar [not null]
+  content text [not null]
+  createdAt timestamp [not null]
+  updatedAt timestamp [not null]
+
+  user User
+  post Post
+}
+
+Table "Bookmark" {
+  userId varchar [not null]
+  postId varchar [not null]
+  createdAt timestamp [not null]
+
+  user User
+  post Post
+
+  indexes {
+    (postId, userId) [unique, pk] // 복합 키 및 고유성
+  }
+}
+
+Table "Tag" {
+  id varchar [pk, not null]
+  name varchar [unique, not null]
+}
+
+// 기존 요구사항: Post와 Tag의 N:M 관계
+Table "PostTag" {
+  postId varchar [not null]
+  tagId varchar [not null]
+
+  post Post
+  tag Tag
+
+  indexes {
+    (postId, tagId) [pk] // 복합 키
+  }
+}
+
+// 기존 요구사항: Post와 User의 좋아요 N:M 관계
+Table "PostLike" {
+  userId varchar [not null]
+  postId varchar [not null]
+  createdAt timestamp [not null]
+
+  user User
+  post Post
+
+  indexes {
+    (postId, userId) [unique, pk] // 복합 키 및 고유성
+  }
+}
+
+// -----------------------------------
+// 4. 관계 정의 (Refs)
+// -----------------------------------
+
+Ref: Account.userId > User.id
+Ref: Session.userId > User.id
+
+Ref: Post.userId > User.id
+
+Ref: Comment.userId > User.id
+Ref: Comment.postId > Post.id
+
+Ref: Bookmark.userId > User.id
+Ref: Bookmark.postId > Post.id
+
+Ref: PostLike.userId > User.id
+Ref: PostLike.postId > Post.id
+
+Ref: PostTag.postId > Post.id
+Ref: PostTag.tagId > Tag.id
