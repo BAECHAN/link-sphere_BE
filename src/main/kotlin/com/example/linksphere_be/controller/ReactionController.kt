@@ -9,20 +9,17 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @RequestMapping("/api/reactions")
 @CrossOrigin(origins = ["*"]) // Configure CORS as needed
-class ReactionController(
-    private val reactionService: ReactionService
-) {
+class ReactionController(private val reactionService: ReactionService) : ReactionApi {
 
-    @PostMapping
-    fun toggleLike(
-        @RequestBody request: CreateReactionRequest,
-        // TODO: Uncomment when authentication is implemented
-        // @AuthenticationPrincipal user: UserDetails
-    ): ResponseEntity<ReactionResponse> {
-        // TODO: Replace with actual user ID from authentication
-        val userId = "temp-user-id"
-        
-        val response = reactionService.toggleLike(request, userId)
-        return ResponseEntity.ok(response)
-    }
+        override fun toggleLike(
+                @RequestBody request: CreateReactionRequest
+                // TODO: Uncomment when authentication is implemented
+                // @AuthenticationPrincipal user: UserDetails
+                ): ResponseEntity<ReactionResponse> {
+                // TODO: Replace with actual user ID from authentication
+                val userId = "temp-user-id"
+
+                val response = reactionService.toggleLike(request, userId)
+                return ResponseEntity.ok(response)
+        }
 }
