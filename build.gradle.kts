@@ -43,17 +43,10 @@ dependencies {
     implementation("io.jsonwebtoken:jjwt-api:0.12.5")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.5")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.5")
+
+    // SpringDoc OpenAPI (Swagger) 라이브러리 추가
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0")
 }
-
-kotlin { compilerOptions { freeCompilerArgs.addAll("-Xjsr305=strict") } }
-
-allOpen {
-    annotation("jakarta.persistence.Entity")
-    annotation("jakarta.persistence.MappedSuperclass")
-    annotation("jakarta.persistence.Embeddable")
-}
-
-tasks.withType<Test> { useJUnitPlatform() }
 
 kotlin { compilerOptions { freeCompilerArgs.addAll("-Xjsr305=strict") } }
 
